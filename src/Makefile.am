@@ -1,27 +1,27 @@
-# collector - Makefile.am
+# kollector - Makefile.am
 # Copyright (c) 2013-2016 Arkadiusz Bokowy
 
-bin_PROGRAMS = collector
+bin_PROGRAMS = kollector
 
-collector_SOURCES = \
+kollector_SOURCES = \
 	find.c \
 	strrcmp.c \
 	main.c
 
-collector_CFLAGS = \
+kollector_CFLAGS = \
 	@GLIB20_CFLAGS@ \
 	@LIBCURL_CFLAGS@ \
 	@SQLITE_CFLAGS@ \
 	@UUID_CFLAGS@
 
-collector_LDADD = \
+kollector_LDADD = \
 	@GLIB20_LIBS@ \
 	@LIBCURL_LIBS@ \
 	@SQLITE_LIBS@ \
 	@UUID_LIBS@
 
-kindle-relink-local: $(collector_OBJECTS)
-	$(CCLD) $(CFLAGS) -o collector $(collector_OBJECTS) \
+kindle-relink-local: $(kollector_OBJECTS)
+	$(CCLD) $(CFLAGS) -o kollector $(kollector_OBJECTS) \
 		$(top_srcdir)/../../kindle/lib/libuuid.so \
 		$(top_srcdir)/../../kindle/usr/lib/libcurl.so \
 		$(top_srcdir)/../../kindle/usr/lib/libglib-2.0.so \

@@ -1,7 +1,7 @@
-# collector - configure.ac
+# kollector - configure.ac
 # Copyright (c) 2013-2016 Arkadiusz Bokowy
 
-AC_INIT([collector], [0.1.0], [arkadiusz.bokowy@gmail.com])
+AC_INIT([kollector], [0.1.0], [arkadiusz.bokowy@gmail.com])
 AC_CONFIG_HEADERS([config.h])
 AM_INIT_AUTOMAKE([foreign -Wall -Werror])
 AM_EXTRA_RECURSIVE_TARGETS([kindle-relink])

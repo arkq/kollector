@@ -1,8 +1,8 @@
 /*
- * collector - strrcmp.c
+ * kollector - strrcmp.c
  * Copyright (c) 2016 Arkadiusz Bokowy
  *
- * This file is a part of a collector.
+ * This file is a part of a kollector.
  *
  * This projected is licensed under the terms of the MIT license.
  *

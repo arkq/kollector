@@ -1,8 +1,8 @@
 /*
- * collector - main.c
+ * kollector - main.c
  * Copyright (c) 2012-2016 Arkadiusz Bokowy
  *
- * This file is a part of a collector.
+ * This file is a part of a kollector.
  *
  * This projected is licensed under the terms of the MIT license.
  *
@@ -47,9 +47,9 @@ struct collection {
 
 
 /* Default configuration. */
-gboolean collector_remove_collections = FALSE;
-gboolean collector_single_entry = FALSE;
-gboolean collector_commit_changes = TRUE;
+gboolean kollector_remove_collections = FALSE;
+gboolean kollector_single_entry = FALSE;
+gboolean kollector_commit_changes = TRUE;
 
 
 /* Global handlers. */
@@ -258,7 +258,7 @@ static void manager_insert_collection(gpointer key, gpointer value, gpointer use
 			uuid_s, (int)time(NULL), collection->name,
 			/* make collection visible if there is more than one entry in it - see
 			 * also the manager_update_collection() function */
-			collector_single_entry || collection->entries->len > 1 ? "true" : "false");
+			kollector_single_entry || collection->entries->len > 1 ? "true" : "false");
 }
 
 /* Callback function for GLib table foreach iterator, which adds "update
@@ -275,7 +275,7 @@ static void manager_update_collection(gpointer key, gpointer value, gpointer use
 	fprintf(f, "{\"update\":{\"type\":\"Collection\",\"uuid\":\"%s\",\"members\":[", uuid_s);
 
 	/* group entries in a collection if there is more than one entry */
-	if (collector_single_entry || collection->entries->len > 1) {
+	if (kollector_single_entry || collection->entries->len > 1) {
 
 		for (i = 0; i < collection->entries->len; i++) {
 			uuid_unparse(g_array_index(collection->entries, struct collection_entry, i).uuid, uuid_s);
@@ -357,7 +357,7 @@ void manager_execute_action(FILE *buffer_f) {
 	curl_easy_setopt(manager_curl, CURLOPT_POSTFIELDSIZE, buffer_size);
 	curl_easy_setopt(manager_curl, CURLOPT_READDATA, buffer_f);
 
-	if (collector_commit_changes) {
+	if (kollector_commit_changes) {
 		if ((errornum = curl_easy_perform(manager_curl)) != CURLE_OK)
 			fprintf(stderr, "error: %s\n", curl_easy_strerror(errornum));
 	}
@@ -396,13 +396,13 @@ int main(int argc, char *argv[]) {
 			break;
 
 		case 'r':
-			collector_remove_collections = TRUE;
+			kollector_remove_collections = TRUE;
 			break;
 		case 's':
-			collector_single_entry = TRUE;
+			kollector_single_entry = TRUE;
 			break;
 		case 'x':
-			collector_commit_changes = FALSE;
+			kollector_commit_changes = FALSE;
 			break;
 
 		default:
@@ -427,7 +427,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	/* remove all previously defined collections */
-	if (collector_remove_collections) {
+	if (kollector_remove_collections) {
 		manager_execute_action(manager_get_delete_action());
 	}
 	/* create/update collections for uploaded documents */

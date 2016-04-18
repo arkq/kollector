@@ -1,8 +1,8 @@
 /*
- * collector - find.c
+ * kollector - find.c
  * Copyright (c) 2012 Arkadiusz Bokowy
  *
- * This file is a part of a collector.
+ * This file is a part of a kollector.
  *
  * This projected is licensed under the terms of the MIT license.
  *
