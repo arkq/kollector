@@ -50,6 +50,8 @@ struct collection {
 gboolean kollector_remove_collections = FALSE;
 gboolean kollector_single_entry = FALSE;
 gboolean kollector_commit_changes = TRUE;
+const char *cc_db_file = KT_CONTENT_CATALOG_DB;
+const char *documents_dir = KT_DOCUMENTS_DIR;
 
 
 /* Global handlers. */
@@ -196,6 +198,10 @@ static int collection_add_entry(const char *path, const char *entry,
 
 	/* skip processing if we hit configuration files */
 	if (strcmp(entry, COLLECTION_UUID_FNAME) == 0 || strcmp(entry, COLLECTION_SKIP_FNAME) == 0)
+		return 0;
+
+	/* skip processing if we are in the documents root directory */
+	if (strcmp(path, documents_dir) == 0)
 		return 0;
 
 	/* try to get collection UUID */
@@ -372,9 +378,6 @@ void manager_execute_action(FILE *buffer_f) {
 int main(int argc, char *argv[]) {
 
 	int opt;
-
-	const char *cc_db_file = KT_CONTENT_CATALOG_DB;
-	const char *documents_dir = KT_DOCUMENTS_DIR;
 
 	while ((opt = getopt(argc, argv, "hB:D:rsx")) != -1)
 		switch (opt) {
