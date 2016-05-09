@@ -8,6 +8,10 @@
  *
  */
 
+#if HAVE_CONFIG_H
+# include "../config.h"
+#endif
+
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -22,6 +26,9 @@
 
 #include "find.h"
 #include "strrcmp.h"
+#if WITH_WATCHER
+# include "watcher.h"
+#endif
 
 
 #define KT_DOCUMENTS_DIR "/mnt/us/documents"
@@ -36,6 +43,7 @@
 struct collection_entry {
 	uuid_t uuid;
 	char name[128];
+	time_t mtime;
 };
 
 /* Collection structure. */
@@ -45,11 +53,19 @@ struct collection {
 	GArray *entries;
 };
 
+/* Structure used by the update worker. */
+struct update_data {
+	const char *documents;
+	/* last modification time */
+	time_t modified;
+};
+
 
 /* Default configuration. */
 gboolean kollector_remove_collections = FALSE;
 gboolean kollector_single_entry = FALSE;
 gboolean kollector_commit_changes = TRUE;
+gboolean kollector_watch_documents = FALSE;
 const char *cc_db_file = KT_CONTENT_CATALOG_DB;
 const char *documents_dir = KT_DOCUMENTS_DIR;
 
@@ -223,6 +239,7 @@ static int collection_add_entry(const char *path, const char *entry,
 	/* add new book to the collection */
 	if (kindle_db_get_entry_uuid(path, entry, collection_entry.uuid) == 1) {
 		strcpy(collection_entry.name, entry);
+		collection_entry.mtime = entry_stat->st_mtim.tv_sec;
 		g_array_append_val(collection->entries, collection_entry);
 		return 1;
 	}
@@ -243,6 +260,19 @@ static gboolean collection_filter_empty(gpointer key, gpointer value, gpointer u
 	(void)key;
 	(void)user_data;
 	return !((struct collection *)value)->entries->len;
+}
+
+/* Callback function for GLib table foreach iterator, which gets the maximum
+ * value of the modification time. */
+static void collection_get_mtime_max(gpointer key, gpointer value, gpointer user_data) {
+	(void)key;
+	struct collection *collection = (struct collection *)value;
+	time_t *mtime = (time_t *)user_data;
+	size_t i;
+
+	for (i = 0; i < collection->entries->len; i++)
+		if (g_array_index(collection->entries, struct collection_entry, i).mtime > *mtime)
+			*mtime = g_array_index(collection->entries, struct collection_entry, i).mtime;
 }
 
 /* Callback function for GLib table foreach iterator, which adds "insert
@@ -351,7 +381,7 @@ static FILE *manager_get_delete_action(void) {
 }
 
 /* Execute content manager action commands given by the FILE buffer. */
-void manager_execute_action(FILE *buffer_f) {
+static void manager_execute_action(FILE *buffer_f) {
 
 	CURLcode errornum;
 	int buffer_size;
@@ -375,11 +405,39 @@ void manager_execute_action(FILE *buffer_f) {
 	}
 }
 
+/* Collections updater - worker function. */
+static gboolean update(struct update_data *data) {
+
+	GHashTable *collections;
+	time_t mtime;
+	int count;
+
+	/* collect all entries (books) associated with collections */
+	collections = g_hash_table_new_full(g_str_hash, g_str_equal, NULL, collection_free);
+	if ((count = find(data->documents, collection_add_entry, collections)) == -1) {
+		perror("error: scanning documents");
+		g_hash_table_unref(collections);
+		return FALSE;
+	}
+
+	fprintf(stderr, "info: found %d book(s) associated with collections\n", count);
+
+	g_hash_table_foreach_remove(collections, collection_filter_empty, NULL);
+	g_hash_table_foreach(collections, collection_get_mtime_max, &mtime);
+
+	if (mtime > data->modified)
+		manager_execute_action(manager_get_update_action(collections));
+
+	g_hash_table_unref(collections);
+	data->modified = time(NULL);
+	return TRUE;
+}
+
 int main(int argc, char *argv[]) {
 
 	int opt;
 
-	while ((opt = getopt(argc, argv, "hB:D:rsx")) != -1)
+	while ((opt = getopt(argc, argv, "hB:D:rswx")) != -1)
 		switch (opt) {
 		case 'h':
 			printf("usage: %s [options]\n"
@@ -387,6 +445,9 @@ int main(int argc, char *argv[]) {
 					"  -D PATH\tuse given PATH for documents search\n"
 					"  -r\t\tremove all existing collections\n"
 					"  -s\t\tgenerate collection even for a single entry\n"
+#if WITH_WATCHER
+					"  -w\t\twatch for document changes - live mode\n"
+#endif
 					"  -x\t\tdo not commit changes - print mode\n",
 					argv[0]);
 			return EXIT_SUCCESS;
@@ -404,6 +465,11 @@ int main(int argc, char *argv[]) {
 		case 's':
 			kollector_single_entry = TRUE;
 			break;
+#if WITH_WATCHER
+		case 'w':
+			kollector_watch_documents = TRUE;
+			break;
+#endif
 		case 'x':
 			kollector_commit_changes = FALSE;
 			break;
@@ -436,20 +502,21 @@ int main(int argc, char *argv[]) {
 	/* create/update collections for uploaded documents */
 	else {
 
-		GHashTable *collections;
-		int count;
+		struct update_data data = {
+			.documents = documents_dir,
+			.modified = 0,
+		};
 
-		/* collect all entries (books) associated with collections */
-		collections = g_hash_table_new_full(g_str_hash, g_str_equal, NULL, collection_free);
-		if ((count = find(documents_dir, collection_add_entry, collections)) == -1) {
-			perror("error: scanning documents");
+		if (!update(&data))
 			goto return_failure;
-		}
 
-		fprintf(stderr, "info: found %d book(s) associated with collections\n", count);
-
-		g_hash_table_foreach_remove(collections, collection_filter_empty, NULL);
-		manager_execute_action(manager_get_update_action(collections));
+#if WITH_WATCHER
+		/* watch for documents (index) changes and perform collections update */
+		if (kollector_watch_documents &&
+				watcher_subscribe((gboolean (*)(void *))update, &data))
+			for (;;)
+				sleep(3600);
+#endif
 
 	}
 

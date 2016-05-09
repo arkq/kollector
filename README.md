@@ -1,5 +1,5 @@
-Kollector - Collections builder
-===============================
+Kollector - Collections builder for Kindle
+==========================================
 
 Kollector is a simple automatic collections manager. It will help you organize books on the Kindle
 device by creating collections based on the directory structure of documents. For a quick peek of

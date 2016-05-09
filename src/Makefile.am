@@ -20,9 +20,13 @@ kollector_LDADD = \
 	@SQLITE_LIBS@ \
 	@UUID_LIBS@
 
-kindle-relink-local: $(kollector_OBJECTS)
-	$(CCLD) $(CFLAGS) -o kollector $(kollector_OBJECTS) \
-		$(top_srcdir)/../../kindle/lib/libuuid.so \
-		$(top_srcdir)/../../kindle/usr/lib/libcurl.so \
-		$(top_srcdir)/../../kindle/usr/lib/libglib-2.0.so \
-		$(top_srcdir)/../../kindle/usr/lib/libsqlite3.so
+if WITH_WATCHER
+kollector_SOURCES += watcher.c
+kollector_LDADD += @LIPC_LIBS@
+endif
+
+if ENABLE_KINDLE_ENV
+AM_LDFLAGS = \
+	-L$(KINDLE_ROOTDIR)/lib \
+	-L$(KINDLE_ROOTDIR)/usr/lib
+endif
