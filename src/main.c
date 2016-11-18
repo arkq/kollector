@@ -21,8 +21,8 @@
 
 #include <glib.h>
 #include <sqlite3.h>
+#include <uuid.h>
 #include <curl/curl.h>
-#include <uuid/uuid.h>
 
 #include "find.h"
 #include "strrcmp.h"
