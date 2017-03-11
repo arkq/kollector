@@ -42,14 +42,14 @@
 /* Collection entry structure. */
 struct collection_entry {
 	uuid_t uuid;
-	char name[128];
+	char name[256];
 	time_t mtime;
 };
 
 /* Collection structure. */
 struct collection {
 	uuid_t uuid;
-	char name[128];
+	char name[256];
 	GArray *entries;
 };
 
@@ -238,7 +238,8 @@ static int collection_add_entry(const char *path, const char *entry,
 
 	/* add new book to the collection */
 	if (kindle_db_get_entry_uuid(path, entry, collection_entry.uuid) == 1) {
-		strcpy(collection_entry.name, entry);
+		strncpy(collection_entry.name, entry, sizeof(collection_entry.name) - 1);
+		collection_entry.name[sizeof(collection_entry.name) - 1] = '\0';
 		collection_entry.mtime = entry_stat->st_mtim.tv_sec;
 		g_array_append_val(collection->entries, collection_entry);
 		return 1;
